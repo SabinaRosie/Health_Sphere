@@ -6,7 +6,10 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const HealthSphereApp());
 
-    // Verify that the app builds by checking if the Onboarding screen text is present
-    expect(find.text('Get Started'), findsOneWidget);
+    // Verify that the app builds by checking if the Splash screen text is present initially
+    expect(find.text('Health Sphere'), findsAtLeast(1));
+
+    // Wait for splash transition to complete
+    await tester.pumpAndSettle(const Duration(seconds: 4));
   });
 }

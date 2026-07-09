@@ -28,7 +28,9 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     // Hide system status bar for full immersive feel
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    try {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } catch (_) {}
 
     // Ripple/background animation
     _rippleController = AnimationController(
@@ -87,7 +89,9 @@ class _SplashScreenState extends State<SplashScreen>
     // Navigate after animations complete
     await Future.delayed(const Duration(milliseconds: 1800));
     if (mounted) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      try {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      } catch (_) {}
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -238,18 +242,27 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(32),
-                          child: Image.asset(
-                            'assets/icon.png',
+                          child: FittedBox(
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
-                                child: Icon(
-                                  Icons.health_and_safety_rounded,
-                                  size: 70,
-                                  color: AppColors.primary,
-                                ),
-                              );
-                            },
+                            clipBehavior: Clip.hardEdge,
+                            child: SizedBox(
+                              width: 260,
+                              height: 230,
+                              child: Image.asset(
+                                'assets/icon.png',
+                                fit: BoxFit.contain,
+                                alignment: const Alignment(0, -0.3),
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Center(
+                                    child: Icon(
+                                      Icons.health_and_safety_rounded,
+                                      size: 70,
+                                      color: AppColors.primary,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                         ),
                       ),

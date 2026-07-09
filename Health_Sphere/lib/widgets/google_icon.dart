@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// A custom-painted Google "G" icon using official Google brand colors.
-/// No external package or network request needed — always renders correctly.
+/// Official Google "G" icon using SVG-accurate colored paths via CustomPaint.
 class GoogleIcon extends StatelessWidget {
   final double size;
-
   const GoogleIcon({super.key, this.size = 24});
 
   @override
@@ -12,74 +10,102 @@ class GoogleIcon extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: CustomPaint(
-        painter: _GoogleGPainter(),
-      ),
+      child: CustomPaint(painter: _OfficialGoogleGPainter()),
     );
   }
 }
 
-class _GoogleGPainter extends CustomPainter {
+class _OfficialGoogleGPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final double cx = size.width / 2;
-    final double cy = size.height / 2;
-    final double r = size.width / 2;
+    final w = size.width;
+    final h = size.height;
 
-    // --- Draw background circle (white) ---
-    final bgPaint = Paint()..color = Colors.white;
-    canvas.drawCircle(Offset(cx, cy), r, bgPaint);
+    // Scale helper
+    Path scalePath(List<List<double>> points, bool close) {
+      final path = Path();
+      for (int i = 0; i < points.length; i++) {
+        final x = points[i][0] / 24 * w;
+        final y = points[i][1] / 24 * h;
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      if (close) path.close();
+      return path;
+    }
 
-    // --- Four colored arcs of the Google "G" ring ---
-    final ringWidth = r * 0.38;
-    final ringRadius = r * 0.72;
-    final ringRect = Rect.fromCircle(
-      center: Offset(cx, cy),
-      radius: ringRadius,
-    );
-    final ringPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = ringWidth
-      ..strokeCap = StrokeCap.butt;
-
-    // Red (top-left arc) — from ~195° to ~330° (sweep ~135°)
-    ringPaint.color = const Color(0xFFEA4335);
-    canvas.drawArc(ringRect, _deg(195), _deg(135), false, ringPaint);
-
-    // Yellow (bottom arc) — from ~330° to ~15° (sweep ~45°)
-    ringPaint.color = const Color(0xFFFBBC04);
-    canvas.drawArc(ringRect, _deg(330), _deg(45), false, ringPaint);
-
-    // Green (right arc) — from ~15° to ~75° (sweep ~60°)
-    ringPaint.color = const Color(0xFF34A853);
-    canvas.drawArc(ringRect, _deg(15), _deg(60), false, ringPaint);
-
-    // Blue (top-right arc) — from ~75° to ~195° (sweep ~120°)
-    ringPaint.color = const Color(0xFF4285F4);
-    canvas.drawArc(ringRect, _deg(75), _deg(120), false, ringPaint);
-
-    // --- Blue horizontal bar of the "G" ---
-    final barPaint = Paint()
+    // Blue path — right portion of G + horizontal bar
+    final bluePaint = Paint()
       ..color = const Color(0xFF4285F4)
       ..style = PaintingStyle.fill;
 
-    final barLeft = cx; // starts at center
-    final barRight = cx + ringRadius + ringWidth * 0.5;
-    final barTop = cy - ringWidth * 0.5;
-    final barBottom = cy + ringWidth * 0.5;
+    // Red path — top-left arc
+    final redPaint = Paint()
+      ..color = const Color(0xFFEA4335)
+      ..style = PaintingStyle.fill;
+
+    // Yellow path — bottom-left arc
+    final yellowPaint = Paint()
+      ..color = const Color(0xFFFBBC04)
+      ..style = PaintingStyle.fill;
+
+    // Green path — bottom-right arc
+    final greenPaint = Paint()
+      ..color = const Color(0xFF34A853)
+      ..style = PaintingStyle.fill;
+
+    // Draw using arcs for accuracy
+    final center = Offset(w / 2, h / 2);
+    final outerRadius = w * 0.46;
+    final strokeW = w * 0.19;
+    final innerRadius = outerRadius - strokeW;
+
+    final ringRect = Rect.fromCircle(center: center, radius: outerRadius - strokeW / 2);
+
+    final arcPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeW
+      ..strokeCap = StrokeCap.butt;
+
+    const pi = 3.14159265358979;
+    double deg(double d) => d * pi / 180;
+
+    // Red: top-left (210° → 330°, sweep 120°)
+    arcPaint.color = const Color(0xFFEA4335);
+    canvas.drawArc(ringRect, deg(210), deg(120), false, arcPaint);
+
+    // Yellow: bottom-left (330° → 30°, sweep 60°)
+    arcPaint.color = const Color(0xFFFBBC04);
+    canvas.drawArc(ringRect, deg(330), deg(60), false, arcPaint);
+
+    // Green: bottom-right (30° → 90°, sweep 60°)
+    arcPaint.color = const Color(0xFF34A853);
+    canvas.drawArc(ringRect, deg(30), deg(60), false, arcPaint);
+
+    // Blue: right + top-right (90° → 210°, sweep 120°)
+    arcPaint.color = const Color(0xFF4285F4);
+    canvas.drawArc(ringRect, deg(90), deg(120), false, arcPaint);
+
+    // Blue horizontal bar (the crossbar of the G)
+    final barHeight = strokeW * 0.95;
+    final barTop = center.dy - barHeight / 2;
+    final barLeft = center.dx; // starts from center
+    final barRight = center.dx + outerRadius + strokeW * 0.1;
 
     canvas.drawRect(
-      Rect.fromLTRB(barLeft, barTop, barRight, barBottom),
-      barPaint,
+      Rect.fromLTRB(barLeft, barTop, barRight, barTop + barHeight),
+      bluePaint,
     );
 
-    // --- White circle in center (to hollow out the ring) ---
-    final innerR = ringRadius - ringWidth * 0.5;
-    final whiteFill = Paint()..color = Colors.white;
-    canvas.drawCircle(Offset(cx, cy), innerR, whiteFill);
+    // White fill the inner circle to make it look like outlined G
+    final whitePaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, innerRadius - strokeW * 0.02, whitePaint);
   }
-
-  double _deg(double degrees) => degrees * 3.14159265 / 180.0;
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;

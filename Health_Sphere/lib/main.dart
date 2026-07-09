@@ -20,9 +20,7 @@ class HealthSphereApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
         scaffoldBackgroundColor: AppColors.background,
         useMaterial3: true,
-        textTheme: GoogleFonts.outfitTextTheme(
-          Theme.of(context).textTheme,
-        ),
+        textTheme: GoogleFonts.outfitTextTheme(Theme.of(context).textTheme),
       ),
       onGenerateRoute: RouteGenerator.generateRoute,
       home: const SplashScreen(),

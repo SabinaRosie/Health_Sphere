@@ -216,20 +216,21 @@ class _OnboardingPage extends StatelessWidget {
           // Text Content
           Expanded(
             flex: 2,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  data.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textMain,
-                    height: 1.2,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    data.title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMain,
+                      height: 1.2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
                 Text(
                   data.subtitle,
                   textAlign: TextAlign.center,
@@ -242,6 +243,7 @@ class _OnboardingPage extends StatelessWidget {
               ],
             ),
           ),
+        ),
         ],
       ),
     );
