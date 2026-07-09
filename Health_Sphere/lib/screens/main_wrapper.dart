@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
 import 'package:health_sphere/screens/home_screen.dart';
 import 'package:health_sphere/screens/appointments_screen.dart';
+import 'package:health_sphere/screens/profile_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -17,7 +18,7 @@ class _MainWrapperState extends State<MainWrapper> {
     const HomeScreen(),
     const AppointmentsScreen(),
     const Scaffold(body: Center(child: Text('Documents'))),
-    const Scaffold(body: Center(child: Text('Profile'))),
+    const ProfileScreen(),
   ];
 
   @override

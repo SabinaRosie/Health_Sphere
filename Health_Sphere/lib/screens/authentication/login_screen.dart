@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
 import 'package:health_sphere/screens/authentication/signup_screen.dart';
 import 'package:health_sphere/screens/main_wrapper.dart';
 import 'package:health_sphere/utils/validators.dart';
 import 'package:health_sphere/widgets/google_icon.dart';
+import 'package:health_sphere/widgets/loading_overlay.dart';
 import 'package:health_sphere/widgets/validation_helper.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -26,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen>
   final FocusNode _passwordFocus = FocusNode();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _rememberMe = false;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
@@ -134,6 +137,9 @@ class _LoginScreenState extends State<LoginScreen>
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('remember_me', _rememberMe);
+
         if (mounted) {
           setState(() => _isLoading = false);
           Navigator.pushReplacement(
@@ -177,7 +183,9 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return LoadingOverlay(
+      isLoading: _isLoading,
+      child: Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -378,26 +386,71 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 const SizedBox(height: 12),
 
-                                // Forgot Password
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () {},
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: const Text(
-                                      'Forgot Password?',
-                                      style: TextStyle(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
+                                // Remember Me & Forgot Password
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _rememberMe = !_rememberMe;
+                                        });
+                                      },
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: Checkbox(
+                                              value: _rememberMe,
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  _rememberMe = val ?? false;
+                                                });
+                                              },
+                                              activeColor: AppColors.primary,
+                                              checkColor: Colors.white,
+                                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              side: BorderSide(
+                                                color: Colors.grey.shade300,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            'Remember me',
+                                            style: TextStyle(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ),
+                                    TextButton(
+                                      onPressed: () {},
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: const Text(
+                                        'Forgot Password?',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 28),
 
@@ -415,22 +468,13 @@ class _LoginScreenState extends State<LoginScreen>
                                         borderRadius: BorderRadius.circular(14),
                                       ),
                                     ),
-                                    child: _isLoading
-                                        ? const SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2.5,
-                                            ),
-                                          )
-                                        : const Text(
-                                            'Log In',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                    child: const Text(
+                                      'Log In',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 24),
@@ -532,6 +576,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }

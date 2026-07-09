@@ -8,6 +8,7 @@ import 'package:health_sphere/screens/authentication/login_screen.dart';
 import 'package:health_sphere/screens/main_wrapper.dart';
 import 'package:health_sphere/utils/validators.dart';
 import 'package:health_sphere/widgets/google_icon.dart';
+import 'package:health_sphere/widgets/loading_overlay.dart';
 import 'package:health_sphere/widgets/validation_helper.dart';
 
 
@@ -190,7 +191,9 @@ class _SignupScreenState extends State<SignupScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return LoadingOverlay(
+      isLoading: _isLoading,
+      child: Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -499,22 +502,13 @@ class _SignupScreenState extends State<SignupScreen>
                                         borderRadius: BorderRadius.circular(14),
                                       ),
                                     ),
-                                    child: _isLoading
-                                        ? const SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2.5,
-                                            ),
-                                          )
-                                        : const Text(
-                                            'Sign Up',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                    child: const Text(
+                                      'Sign Up',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 24),
@@ -614,6 +608,7 @@ class _SignupScreenState extends State<SignupScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }

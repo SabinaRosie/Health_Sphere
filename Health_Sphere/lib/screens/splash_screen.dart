@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
 import 'package:health_sphere/screens/walkthrough_screen.dart';
+import 'package:health_sphere/screens/main_wrapper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -86,17 +88,24 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 700));
     _textController.forward();
 
+    // Check remember me state
+    final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool('remember_me') ?? false;
+
     // Navigate after animations complete
     await Future.delayed(const Duration(milliseconds: 1800));
     if (mounted) {
       try {
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       } catch (_) {}
+
+      final destination = rememberMe ? const MainWrapper() : const WalkthroughScreen();
+
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 600),
-          pageBuilder: (_, __, ___) => const WalkthroughScreen(),
+          pageBuilder: (_, __, ___) => destination,
           transitionsBuilder: (_, animation, __, child) {
             return FadeTransition(opacity: animation, child: child);
           },
