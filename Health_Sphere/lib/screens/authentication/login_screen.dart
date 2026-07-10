@@ -137,8 +137,17 @@ class _LoginScreenState extends State<LoginScreen>
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('remember_me', _rememberMe);
+        final name = (data['user']?['full_name'] ??
+                data['first_name'] ??
+                data['username'] ??
+                data['name'] ??
+                '')
+            .toString()
+            .trim();
+        if (name.isNotEmpty) await prefs.setString('user_name', name);
 
         if (mounted) {
           setState(() => _isLoading = false);

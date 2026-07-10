@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
 import 'package:health_sphere/screens/authentication/login_screen.dart';
 import 'package:health_sphere/screens/main_wrapper.dart';
@@ -146,6 +147,11 @@ class _SignupScreenState extends State<SignupScreen>
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+        final name = (data['user']?['full_name'] ?? '').toString().trim();
+        if (name.isNotEmpty) await prefs.setString('user_name', name);
+
         if (mounted) {
           setState(() => _isLoading = false);
           Navigator.pushAndRemoveUntil(

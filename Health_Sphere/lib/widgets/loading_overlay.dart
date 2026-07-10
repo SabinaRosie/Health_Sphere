@@ -4,8 +4,9 @@ import 'package:health_sphere/core/theme/app_colors.dart';
 
 /// Production-grade full-screen loading overlay.
 ///
-/// Wraps [child] in a [Stack]. When [isLoading] is true:
-///  - All pointer events are absorbed (no accidental taps).
+/// When [isLoading] is true:
+///  - ALL pointer events on the ENTIRE screen are absorbed (form fields,
+///    buttons, scrolling — everything is disabled).
 ///  - The content beneath is blurred with [BackdropFilter].
 ///  - A centered, glassy spinner card fades in with a smooth animation.
 ///
@@ -32,28 +33,33 @@ class LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // ── Main content ──────────────────────────────────────────────
-        child,
+    // AbsorbPointer wraps the ENTIRE Stack so that when isLoading=true,
+    // NO touch event can reach the child content (fields, buttons, etc.).
+    return AbsorbPointer(
+      absorbing: isLoading,
+      child: Stack(
+        children: [
+          // ── Main content ──────────────────────────────────────────────
+          child,
 
-        // ── Overlay (animates in/out) ─────────────────────────────────
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 260),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: child,
+          // ── Overlay (animates in/out) ─────────────────────────────────
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+            child: isLoading
+                ? _OverlayLayer(
+                    key: const ValueKey('overlay'),
+                    blurSigma: blurSigma,
+                  )
+                : const SizedBox.shrink(key: ValueKey('empty')),
           ),
-          child: isLoading
-              ? _OverlayLayer(
-                  key: const ValueKey('overlay'),
-                  blurSigma: blurSigma,
-                )
-              : const SizedBox.shrink(key: ValueKey('empty')),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -95,24 +101,20 @@ class _OverlayLayerState extends State<_OverlayLayer>
 
   @override
   Widget build(BuildContext context) {
-    return AbsorbPointer(
-      // ── Absorb ALL taps while loading ──────────────────────────────
-      absorbing: true,
-      child: SizedBox.expand(
-        child: ClipRect(
-          child: BackdropFilter(
-            // ── Blur the background ────────────────────────────────────
-            filter: ImageFilter.blur(
-              sigmaX: widget.blurSigma,
-              sigmaY: widget.blurSigma,
-            ),
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.28),
-              alignment: Alignment.center,
-              child: ScaleTransition(
-                scale: _pulseAnim,
-                child: const _SpinnerCard(),
-              ),
+    return SizedBox.expand(
+      child: ClipRect(
+        child: BackdropFilter(
+          // ── Blur the background ──────────────────────────────────────
+          filter: ImageFilter.blur(
+            sigmaX: widget.blurSigma,
+            sigmaY: widget.blurSigma,
+          ),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.30),
+            alignment: Alignment.center,
+            child: ScaleTransition(
+              scale: _pulseAnim,
+              child: const _SpinnerCard(),
             ),
           ),
         ),
@@ -132,7 +134,7 @@ class _SpinnerCard extends StatelessWidget {
       width: 90,
       height: 90,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
+        color: Colors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -142,7 +144,7 @@ class _SpinnerCard extends StatelessWidget {
             offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.12),
+            color: AppColors.primary.withValues(alpha: 0.15),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
