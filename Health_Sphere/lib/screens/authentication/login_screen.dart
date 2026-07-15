@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
 import 'package:health_sphere/screens/authentication/signup_screen.dart';
 import 'package:health_sphere/screens/main_wrapper.dart';
-import 'package:health_sphere/utils/validators.dart';
+import 'package:health_sphere/core/utils/validators.dart';
 import 'package:health_sphere/widgets/google_icon.dart';
 import 'package:health_sphere/widgets/loading_overlay.dart';
 import 'package:health_sphere/widgets/validation_helper.dart';

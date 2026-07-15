@@ -7,7 +7,7 @@ import 'package:health_sphere/screens/main_wrapper.dart';
 
 import 'package:health_sphere/screens/splash_screen.dart';
 import 'package:health_sphere/screens/walkthrough_screen.dart';
-import 'package:health_sphere/utils/route_constants.dart';
+import 'package:health_sphere/core/utils/route_constants.dart';
 
 class RouteGenerator {
   RouteGenerator._();

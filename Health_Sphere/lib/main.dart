@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
 import 'package:health_sphere/screens/splash_screen.dart';
-import 'package:health_sphere/utils/route_generator.dart';
+import 'package:health_sphere/core/utils/route_generator.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 void main() {
