@@ -4,3 +4,5 @@ django-cors-headers
 gunicorn
 python-dotenv
 huggingface-hub
+dj-database-url
+psycopg2-binary
