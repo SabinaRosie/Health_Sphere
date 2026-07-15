@@ -2,40 +2,48 @@ import os
 import subprocess
 import threading
 import gradio as gr
+import sys
 import time
 
+# 1. Print directory structure to Logs for debugging
+print("--- Current Directory Content ---")
+print(os.listdir("."))
+
 def run_django():
-    # Change directory to where manage.py is
-    os.chdir("HealthSphere_backend")
-    # Start Django on port 8000 (Gradio will take 7860)
-    os.system("python manage.py runserver 0.0.0.0:8000")
+    try:
+        # Check if the backend folder exists
+        if not os.path.exists("HealthSphere_backend"):
+            print("ERROR: 'HealthSphere_backend' folder not found!")
+            return
 
-# Start Django in a background thread
-threading.Thread(target=run_django, daemon=True).start()
+        print("Starting Django server...")
+        os.chdir("HealthSphere_backend")
 
-# Simple Gradio interface to keep the Space alive
+        # Run migrations just in case it's a fresh deploy
+        subprocess.run(["python", "manage.py", "migrate"])
+
+        # Start Django on port 8000
+        # Using 0.0.0.0 to make it accessible within the container
+        os.system("python manage.py runserver 0.0.0.0:8000")
+    except Exception as e:
+        print(f"Django Error: {e}")
+
+# 2. Start Django in a background thread
+django_thread = threading.Thread(target=run_django, daemon=True)
+django_thread.start()
+
+# 3. Simple Gradio interface
 def health_check(name):
-    return f"HealthSphere Backend is running! Hello {name}"
+    return f"HealthSphere Backend is running! Hello {name}. Django is active on port 8000."
 
 demo = gr.Interface(
     fn=health_check,
     inputs="text",
     outputs="text",
     title="HealthSphere Backend Server",
-    description="This Space is running the Django backend for the HealthSphere Android App."
+    description="Backend status: Check 'Logs' for Django output."
 )
 
 if __name__ == "__main__":
-    # Gradio runs on 7860, but since we are running Django on 7860 above,
-    # we should actually run them on the same port or use a proxy.
-    # Actually, Hugging Face only allows ONE process to listen on 7860.
-
-    # Better approach: Run Django on 8000 and have Gradio/FastAPI proxy it,
-    # OR run Django directly on 7860 and just have a dummy app.py for HF logic.
-
-    # Let's run Gradio on 7860 as required, and Django on 8000.
-    # Your Flutter app will then need to talk to the Gradio proxy or
-    # we can use a simpler approach.
-
-    # For now, let's just launch Gradio to satisfy Hugging Face.
+    # Gradio MUST run on port 7860
     demo.launch(server_name="0.0.0.0", server_port=7860)

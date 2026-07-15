@@ -3,3 +3,4 @@ gradio
 django-cors-headers
 gunicorn
 python-dotenv
+huggingface-hub
