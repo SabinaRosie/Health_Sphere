@@ -1,51 +1,55 @@
 import os
 import sys
 import subprocess
+import threading
 import time
+import gradio as gr
+from fastapi import FastAPI
+from fastapi.middleware.wsgi import WSGIMiddleware
 
-def log(msg):
-    print(f"[SYSTEM] {msg}", flush=True)
-
-# 1. Setup Environment
+# 1. Setup paths
 base_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.join(base_dir, "HealthSphere_backend")
+sys.path.append(backend_dir)
 
-log("Starting deployment sequence...")
-log(f"Backend directory: {backend_dir}")
+# 2. Prepare Django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+import django
+django.setup()
 
-try:
-    # 2. Run Migrations
-    log("Running Django Migrations...")
-    subprocess.run([sys.executable, "manage.py", "migrate"], cwd=backend_dir, check=True)
+from config.wsgi import application as django_app
 
-    # 3. Create Superuser (Email-based)
-    log("Checking Superuser account...")
+def run_setup():
+    print("[SYSTEM] Running migrations...", flush=True)
+    subprocess.run([sys.executable, "manage.py", "migrate"], cwd=backend_dir)
+
+    print("[SYSTEM] Checking Superuser...", flush=True)
     admin_email = os.getenv("DJANGO_ADMIN_EMAIL", "admin@example.com")
     admin_pass = os.getenv("DJANGO_ADMIN_PASSWORD", "admin123")
-
-    script = f"""
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if not User.objects.filter(email='{admin_email}').exists():
-    User.objects.create_superuser(email='{admin_email}', password='{admin_pass}', full_name='System Admin')
-    print('Superuser created successfully.')
-else:
-    print('Superuser already exists.')
-"""
+    script = f"from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(email='{admin_email}').exists() or User.objects.create_superuser(email='{admin_email}', password='{admin_pass}', full_name='System Admin')"
     subprocess.run([sys.executable, "manage.py", "shell", "-c", script], cwd=backend_dir)
 
-    # 4. Start Server on 7860
-    log("Launching Gunicorn on port 7860...")
-    # Add backend_dir to sys.path so gunicorn can find the config module
-    os.environ['PYTHONPATH'] = backend_dir
+run_setup()
 
-    # Execute Gunicorn
-    # We use os.execvp to replace the current process with gunicorn
-    # This ensures the process stays alive as the main container process
-    os.chdir(backend_dir)
-    os.execvp("gunicorn", ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:7860", "--timeout", "600", "--log-level", "info"])
+# 3. Create FastAPI app to host Django via WSGI
+# This allows Django to run on the same port as Gradio
+app = FastAPI()
+app.mount("/api", WSGIMiddleware(django_app))
+app.mount("/admin", WSGIMiddleware(django_app))
+app.mount("/static", WSGIMiddleware(django_app))
 
-except Exception as e:
-    log(f"CRITICAL ERROR during deployment: {e}")
-    # Keep the process alive for an hour so logs can be inspected
-    time.sleep(3600)
+# 4. Gradio Interface (Main UI)
+with gr.Blocks() as demo:
+    gr.Markdown("# 🏥 HealthSphere Backend")
+    gr.Markdown("Status: **Online and Healthy**")
+    gr.Markdown("### 🔗 Quick Links")
+    gr.Markdown("- [Admin Panel](/admin/)")
+    gr.Markdown("- [API Root](/api/)")
+    gr.Markdown("---")
+    gr.Markdown("Your Android app should connect to: `https://manikadahal-health-sphere.hf.space/api/`")
+
+# 5. Launch Gradio with the FastAPI 'app' mounted
+# This is the "Magic" that keeps everything on one port (7860)
+if __name__ == "__main__":
+    print("[SYSTEM] Launching combined server...", flush=True)
+    demo.launch(server_name="0.0.0.0", server_port=7860)
