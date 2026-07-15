@@ -7,8 +7,8 @@ import time
 def run_django():
     # Change directory to where manage.py is
     os.chdir("HealthSphere_backend")
-    # Start Django on port 7860 (required by Hugging Face)
-    os.system("python manage.py runserver 0.0.0.0:7860")
+    # Start Django on port 8000 (Gradio will take 7860)
+    os.system("python manage.py runserver 0.0.0.0:8000")
 
 # Start Django in a background thread
 threading.Thread(target=run_django, daemon=True).start()
