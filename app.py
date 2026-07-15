@@ -5,61 +5,86 @@ import gradio as gr
 import time
 import sys
 
-# Ensure prints show up in Hugging Face logs immediately
+# Global log storage
+execution_logs = []
+
 def log(message):
-    print(f"[LOG] {message}", flush=True)
+    msg = f"[{time.strftime('%H:%M:%S')}] {message}"
+    print(msg, flush=True)
+    execution_logs.append(msg)
 
-def run_backend():
+def run_command(command, cwd=None):
+    log(f"Executing: {' '.join(command)}")
+    result = subprocess.run(command, capture_output=True, text=True, cwd=cwd)
+    if result.stdout:
+        log(f"STDOUT: {result.stdout}")
+    if result.stderr:
+        log(f"STDERR: {result.stderr}")
+    return result.returncode == 0
+
+def start_backend():
     try:
-        log("Checking directory structure...")
-        log(f"Current directory: {os.getcwd()}")
-        log(f"Contents: {os.listdir('.')}")
+        log("Checking environment...")
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            log("WARNING: DATABASE_URL secret is missing!")
+        else:
+            log(f"DATABASE_URL found (starts with: {db_url[:15]}...)")
 
-        if not os.path.exists("HealthSphere_backend"):
-            log("CRITICAL ERROR: 'HealthSphere_backend' folder not found!")
-            return
+        # 1. Migrations
+        backend_dir = "HealthSphere_backend"
+        if run_command([sys.executable, "manage.py", "migrate"], cwd=backend_dir):
+            log("Migrations successful.")
+        else:
+            log("Migrations failed. Check logs above.")
 
-        os.chdir("HealthSphere_backend")
-        log("Moved into HealthSphere_backend folder.")
-
-        # 1. Run Migrations
-        log("Attempting database migrations on Neon...")
-        migrate_result = subprocess.run(["python", "manage.py", "migrate"], capture_output=True, text=True)
-        log(f"Migration Output: {migrate_result.stdout}")
-        if migrate_result.stderr:
-            log(f"Migration Errors: {migrate_result.stderr}")
-
-        # 2. Create Superuser
-        log("Checking for superuser...")
+        # 2. Superuser
         admin_user = os.getenv("DJANGO_ADMIN_USER", "admin")
         admin_pass = os.getenv("DJANGO_ADMIN_PASSWORD", "admin123")
         script = f"from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='{admin_user}').exists() or User.objects.create_superuser('{admin_user}', 'admin@example.com', '{admin_pass}')"
-        subprocess.run(["python", "manage.py", "shell", "-c", script])
+        run_command([sys.executable, "manage.py", "shell", "-c", script], cwd=backend_dir)
 
-        # 3. Start Django using Gunicorn (more stable than runserver)
-        log("Starting Django with Gunicorn on port 8000...")
-        # config.wsgi assumes your settings folder is named 'config'
-        subprocess.Popen(["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "120"])
-        log("Gunicorn process launched in background.")
+        # 3. Start Gunicorn
+        log("Starting Gunicorn...")
+        # We don't use subprocess.run here because Gunicorn stays open
+        subprocess.Popen(
+            ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--log-level", "debug"],
+            cwd=backend_dir
+        )
+        log("Gunicorn process sent to background.")
 
     except Exception as e:
-        log(f"CRITICAL BACKEND ERROR: {str(e)}")
+        log(f"Error in backend thread: {str(e)}")
 
-# Start the backend thread
-backend_thread = threading.Thread(target=run_backend, daemon=True)
-backend_thread.start()
+# UI Logic
+def get_logs():
+    return "\n".join(execution_logs)
 
-# Gradio Interface
-def check_status():
-    return "HealthSphere Backend: Running\nAdmin Panel: /admin\nDatabase: Connected"
+with gr.Blocks(title="HealthSphere Control Center") as demo:
+    gr.Markdown("# 🏥 HealthSphere Backend Control Center")
 
-with gr.Blocks() as demo:
-    gr.Markdown("# 🏥 HealthSphere Backend Server")
-    gr.Markdown("The Django API is running in the background. Your Android app can connect to this Space URL.")
-    status_btn = gr.Button("Check Server Status")
-    output = gr.Textbox(label="Status Report")
-    status_btn.click(fn=check_status, outputs=output)
+    with gr.Row():
+        with gr.Column():
+            status_display = gr.Textbox(label="Live Logs", value="Initializing...", lines=20, max_lines=30)
+            refresh_btn = gr.Button("🔄 Refresh Logs")
+
+        with gr.Column():
+            gr.Markdown("### Server Info")
+            gr.Markdown("- **API Status:** Check logs on left")
+            gr.Markdown("- **Admin Panel:** [Click Here](/admin) (Login: admin / admin123)")
+            gr.Markdown("- **Database:** Neon PostgreSQL")
+
+            redeploy_btn = gr.Button("🚀 Retry Deployment/Migrations")
+
+    refresh_btn.click(fn=get_logs, outputs=status_display)
+    redeploy_btn.click(fn=start_backend).then(fn=get_logs, outputs=status_display)
+
+    # Auto-refresh logs on load
+    demo.load(fn=get_logs, outputs=status_display)
 
 if __name__ == "__main__":
-    log("Launching Gradio UI...")
+    # Start the backend immediately
+    threading.Thread(target=start_backend, daemon=True).start()
+
+    log("Launching Control Center UI...")
     demo.launch(server_name="0.0.0.0", server_port=7860)
