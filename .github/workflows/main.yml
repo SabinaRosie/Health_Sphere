@@ -15,4 +15,8 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.Health_Sphere }}
-        run: git push -f https://manikadahal:$HF_TOKEN@huggingface.co/spaces/manikadahal/Health_Sphere main
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git remote add hf https://x-token-auth:$HF_TOKEN@huggingface.co/spaces/manikadahal/Health_Sphere
+          git push -f hf main
