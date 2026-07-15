@@ -7,6 +7,7 @@ import 'package:health_sphere/screens/profile_screen.dart';
 
 import 'package:health_sphere/screens/doctors_screen.dart';
 import 'package:health_sphere/screens/blog_screen.dart';
+import 'package:health_sphere/screens/chat_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -43,6 +44,9 @@ class _MainWrapperState extends State<MainWrapper> with TickerProviderStateMixin
         onBlogTap: () {
           _onTap(2); // Switch to Blog tab
         },
+        onScheduleTap: () {
+          _onTap(4); // Switch to Appointments (Schedule) tab
+        },
       ),
       DoctorsScreen(
         onBack: () => _onTap(0),
@@ -50,10 +54,7 @@ class _MainWrapperState extends State<MainWrapper> with TickerProviderStateMixin
       BlogScreen(
         onBack: () => _onTap(0),
       ),
-      _PlaceholderScreen(
-        icon: Icons.chat_bubble_rounded,
-        label: 'Chat',
-        desc: 'Message your doctor anytime',
+      ChatScreen(
         onBack: () => _onTap(0),
       ),
       AppointmentsScreen(

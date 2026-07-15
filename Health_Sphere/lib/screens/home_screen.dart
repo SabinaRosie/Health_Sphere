@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
 import 'package:health_sphere/screens/doctors_screen.dart';
+import 'package:health_sphere/screens/consultation_wizard_screen.dart';
+import 'package:health_sphere/screens/notification_screen.dart';
+import 'package:health_sphere/screens/appointments_screen.dart';
+import 'package:health_sphere/widgets/loading_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
   /// Called when user taps the profile avatar → MainWrapper switches to Profile tab.
@@ -10,7 +14,10 @@ class HomeScreen extends StatefulWidget {
   /// Called when user taps "More" on Health Tips → MainWrapper switches to Blog tab.
   final VoidCallback? onBlogTap;
 
-  const HomeScreen({super.key, this.onProfileTap, this.onBlogTap});
+  /// Called when user taps "Next Appt" chip → MainWrapper switches to Schedule tab.
+  final VoidCallback? onScheduleTap;
+
+  const HomeScreen({super.key, this.onProfileTap, this.onBlogTap, this.onScheduleTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -21,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   String _userName = '';
+  bool _isLoading = false;
 
   // Controllers for horizontal carousels
   final ScrollController _doctorsScrollController = ScrollController();
@@ -119,29 +127,32 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        color: AppColors.primary,
-        backgroundColor: Colors.white,
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(child: _buildHeader()),
-              SliverToBoxAdapter(child: _buildSearchBar()),
-              SliverToBoxAdapter(child: _buildQuickActions()),
-              SliverToBoxAdapter(child: _buildSectionHeader('Top Doctors', 'See All', onAction: _openDoctors)),
-              SliverToBoxAdapter(child: _buildDoctorsList()),
-              SliverToBoxAdapter(child: _buildRecentConsultBanner()),
-              SliverToBoxAdapter(child: _buildSectionHeader('Specialities', 'See All')),
-              SliverToBoxAdapter(child: _buildSpecialities()),
-              SliverToBoxAdapter(child: _buildSectionHeader('Health Tips', 'More', topPadding: 10, onAction: widget.onBlogTap)),
-              SliverToBoxAdapter(child: _buildHealthTips()),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-            ],
+    return LoadingOverlay(
+      isLoading: _isLoading,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: AppColors.primary,
+          backgroundColor: Colors.white,
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader()),
+                SliverToBoxAdapter(child: _buildSearchBar()),
+                SliverToBoxAdapter(child: _buildQuickActions()),
+                SliverToBoxAdapter(child: _buildSectionHeader('Top Doctors', 'See All', onAction: _openDoctors)),
+                SliverToBoxAdapter(child: _buildDoctorsList()),
+                SliverToBoxAdapter(child: _buildRecentConsultBanner()),
+                SliverToBoxAdapter(child: _buildSectionHeader('Specialities', 'See All')),
+                SliverToBoxAdapter(child: _buildSpecialities()),
+                SliverToBoxAdapter(child: _buildSectionHeader('Health Tips', 'More', topPadding: 10, onAction: widget.onBlogTap)),
+                SliverToBoxAdapter(child: _buildHealthTips()),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              ],
+            ),
           ),
         ),
       ),
@@ -181,13 +192,24 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   Row(
                     children: [
-                      Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
-                        child: Stack(alignment: Alignment.center, children: [
-                          const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
-                          Positioned(top: 8, right: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))),
-                        ]),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                          ).then((_) {
+                            if (mounted) setState(() {});
+                          });
+                        },
+                        child: Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+                          child: Stack(alignment: Alignment.center, children: [
+                            const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
+                            if (NotificationScreen.hasUnread)
+                              Positioned(top: 8, right: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))),
+                          ]),
+                        ),
                       ),
                       const SizedBox(width: 10),
                       // Profile avatar — tappable
@@ -204,9 +226,16 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               const SizedBox(height: 18),
               Row(children: [
-                _statChip(Icons.calendar_today_rounded, 'Next Appt', 'Tomorrow'),
+                _statChip(
+                  icon: Icons.calendar_today_rounded, 
+                  label: 'Next Appt', 
+                  value: AppointmentsScreen.upcomingAppointments.isNotEmpty 
+                      ? AppointmentsScreen.upcomingAppointments.first.date 
+                      : 'None',
+                  onTap: widget.onScheduleTap,
+                ),
                 const SizedBox(width: 12),
-                _statChip(Icons.medication_outlined, 'Medicines', '2 Due'),
+                _statChip(icon: Icons.medication_outlined, label: 'Medicines', value: '2 Due'),
               ]),
             ],
           ),
@@ -215,19 +244,22 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _statChip(IconData icon, String label, String value) {
+  Widget _statChip({required IconData icon, required String label, required String value, VoidCallback? onTap}) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withValues(alpha: 0.3))),
-        child: Row(children: [
-          Icon(icon, color: Colors.white, size: 16),
-          const SizedBox(width: 8),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w500)),
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withValues(alpha: 0.3))),
+          child: Row(children: [
+            Icon(icon, color: Colors.white, size: 16),
+            const SizedBox(width: 8),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w500)),
+              Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+            ]),
           ]),
-        ]),
+        ),
       ),
     );
   }
@@ -261,19 +293,52 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Quick Actions ────────────────────────────────────────────────────────────
   Widget _buildQuickActions() {
-    final actions = [
-      {'icon': Icons.phone_in_talk_rounded, 'label': 'Call Doctor',    'color': AppColors.primary,         'bg': AppColors.primarySoft},
-      {'icon': Icons.video_call_rounded,    'label': 'Video Consult',  'color': const Color(0xFF7C83FD),   'bg': const Color(0xFFF0F1FF)},
-      {'icon': Icons.local_hospital_rounded,'label': 'Emergency',      'color': AppColors.accent,          'bg': AppColors.accentSoft},
-      {'icon': Icons.science_rounded,       'label': 'Lab Tests',      'color': const Color(0xFF4CAF50),   'bg': const Color(0xFFEDF7EE)},
-    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: actions.map((a) => _QuickActionItem(icon: a['icon'] as IconData, label: a['label'] as String, iconColor: a['color'] as Color, bgColor: a['bg'] as Color)).toList(),
+        children: [
+          _QuickActionItem(
+            icon: Icons.phone_in_talk_rounded,
+            label: 'Call Doctor',
+            iconColor: AppColors.primary,
+            bgColor: AppColors.primarySoft,
+            onTap: () {
+              setState(() => _isLoading = true);
+              Future.delayed(const Duration(milliseconds: 1500), () {
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ConsultationWizardScreen()),
+                  );
+                }
+              });
+            },
+          ),
+          _QuickActionItem(
+            icon: Icons.video_call_rounded,
+            label: 'Video Consult',
+            iconColor: const Color(0xFF7C83FD),
+            bgColor: const Color(0xFFF0F1FF),
+            onTap: () {},
+          ),
+          _QuickActionItem(
+            icon: Icons.local_hospital_rounded,
+            label: 'Emergency',
+            iconColor: AppColors.accent,
+            bgColor: AppColors.accentSoft,
+            onTap: () {},
+          ),
+          _QuickActionItem(
+            icon: Icons.science_rounded,
+            label: 'Lab Tests',
+            iconColor: const Color(0xFF4CAF50),
+            bgColor: const Color(0xFFEDF7EE),
+            onTap: () {},
+          ),
+        ],
       ),
     );
   }
@@ -530,7 +595,8 @@ class _QuickActionItem extends StatelessWidget {
   final String label;
   final Color iconColor;
   final Color bgColor;
-  const _QuickActionItem({required this.icon, required this.label, required this.iconColor, required this.bgColor});
+  final VoidCallback? onTap;
+  const _QuickActionItem({required this.icon, required this.label, required this.iconColor, required this.bgColor, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -538,7 +604,7 @@ class _QuickActionItem extends StatelessWidget {
       Material(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        child: InkWell(borderRadius: BorderRadius.circular(16), onTap: () {},
+        child: InkWell(borderRadius: BorderRadius.circular(16), onTap: onTap,
             child: SizedBox(width: 60, height: 60, child: Center(child: Icon(icon, color: iconColor, size: 27)))),
       ),
       const SizedBox(height: 6),

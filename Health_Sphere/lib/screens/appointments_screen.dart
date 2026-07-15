@@ -1,9 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
+import 'package:health_sphere/models/doctor_model.dart';
+import 'package:health_sphere/screens/consultation_wizard_screen.dart';
+
+class AppointmentModel {
+  final String doctorName;
+  final String doctorSpecialty;
+  final String doctorAvatar;
+  final String patientName;
+  final String time;
+  final String date;
+  final String type;
+
+  const AppointmentModel({
+    required this.doctorName,
+    required this.doctorSpecialty,
+    required this.doctorAvatar,
+    required this.patientName,
+    required this.time,
+    required this.date,
+    this.type = 'Video Consult',
+  });
+
+  /// Build from a DoctorModel for guaranteed sync
+  factory AppointmentModel.fromDoctor({
+    required DoctorModel doctor,
+    required String patientName,
+    required String date,
+    required String time,
+    required String type,
+  }) {
+    return AppointmentModel(
+      doctorName: doctor.name,
+      doctorSpecialty: doctor.specialty,
+      doctorAvatar: doctor.avatarUrl,
+      patientName: patientName,
+      date: date,
+      time: time,
+      type: type,
+    );
+  }
+}
 
 class AppointmentsScreen extends StatefulWidget {
   final VoidCallback? onBack;
   const AppointmentsScreen({super.key, this.onBack});
+
+  // Global static list of upcoming appointments — seeded with the default
+  static final List<AppointmentModel> upcomingAppointments = [
+    AppointmentModel.fromDoctor(
+      doctor: DoctorRegistry.forSymptom('General'),
+      patientName: 'Mark Davis',
+      date: 'Today',
+      time: '9:30 am',
+      type: 'Clinic Visit',
+    ),
+  ];
 
   @override
   State<AppointmentsScreen> createState() => _AppointmentsScreenState();
@@ -24,7 +76,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         leadingWidth: 62,
         leading: Padding(
           padding: const EdgeInsets.only(left: 16),
@@ -53,7 +105,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           'My appointments',
           style: TextStyle(
             color: AppColors.textMain,
-            fontSize: 16,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -79,71 +131,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Lab Result Ready Banner
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.science_outlined, color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Lab Result Ready',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: AppColors.textMain,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Your latest report is available',
-                            style: TextStyle(
-                              color: AppColors.textSecondary.withValues(alpha: 0.7),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-                      ),
-                      child: const Text('View'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
 
               // Upcoming Section
               const Text(
@@ -155,142 +142,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF86E3CE),
-                      AppColors.primary,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=150&auto=format&fit=crop',
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Dr. Michelle Carter',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'General Physician',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Text(
-                            'Change',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.location_on_outlined, color: Colors.white70, size: 16),
-                                SizedBox(width: 4),
-                                Text('Clinic Visit', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                              ],
-                            ),
-                            SizedBox(height: 4),
-                            Text('9:30 am', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.person_outline, color: Colors.white70, size: 16),
-                                SizedBox(width: 4),
-                                Text('Patient Name', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                              ],
-                            ),
-                            SizedBox(height: 4),
-                            Text('Mark Davis', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {},
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primary,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20)),
-                            ),
-                            child: const Text('Reschedule'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {},
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text('View Profile'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              ...AppointmentsScreen.upcomingAppointments.map((app) => _buildUpcomingAppointmentCard(app)),
               const SizedBox(height: 24),
 
               // Past Section
@@ -325,6 +177,165 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildUpcomingAppointmentCard(AppointmentModel appointment) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF86E3CE),
+            AppColors.primary,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  appointment.doctorAvatar,
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: 50,
+                    height: 50,
+                    color: Colors.white24,
+                    child: const Icon(Icons.person, color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      appointment.doctorName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      appointment.doctorSpecialty,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Text(
+                  'Change',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, color: Colors.white70, size: 16),
+                      const SizedBox(width: 4),
+                      Text(appointment.type, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text('${appointment.date} • ${appointment.time}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.person_outline, color: Colors.white70, size: 16),
+                      SizedBox(width: 4),
+                      Text('Patient Name', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(appointment.patientName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ConsultationWizardScreen(
+                          rescheduleAppointment: appointment,
+                        ),
+                      ),
+                    ).then((_) {
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text('Reschedule'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text('View Profile'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
