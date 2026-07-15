@@ -2,6 +2,8 @@ django
 gradio
 django-cors-headers
 gunicorn
+uvicorn
+a2wsgi
 python-dotenv
 huggingface-hub
 dj-database-url
