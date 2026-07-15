@@ -6,3 +6,6 @@ python-dotenv
 huggingface-hub
 dj-database-url
 psycopg2-binary
+djangorestframework
+Pillow
+whiteNoise
