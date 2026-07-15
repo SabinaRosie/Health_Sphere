@@ -16,7 +16,18 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.Health_Sphere }}
         run: |
+          # 1. Configure Git
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
+          
+          # 2. Remove the Flutter frontend folder (NOT needed for backend deployment)
+          # This removes the binary files that are causing the error
+          rm -rf Health_Sphere/
+          
+          # 3. Commit the change locally in the runner
+          git add .
+          git commit -m "Remove frontend for HF deployment"
+          
+          # 4. Push to Hugging Face
           git remote add hf https://x-token-auth:$HF_TOKEN@huggingface.co/spaces/manikadahal/Health_Sphere
           git push -f hf main
