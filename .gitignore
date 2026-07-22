@@ -1,0 +1,17 @@
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local environment configuration
+HealthSphere_backend/.env
+
+# IDE configurations
+.idea/
+.vscode/
+
+# System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
