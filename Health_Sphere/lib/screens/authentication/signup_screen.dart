@@ -33,6 +33,7 @@ class _SignupScreenState extends State<SignupScreen>
   bool _obscureConfirm = true;
   bool _isLoading = false;
   bool _agreeToTerms = false;
+  String _selectedRole = 'patient'; // Default role
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
@@ -143,6 +144,7 @@ class _SignupScreenState extends State<SignupScreen>
           'email': _emailController.text.trim(),
           'password': _passwordController.text,
           'full_name': _nameController.text.trim(),
+          'role': _selectedRole,
         }),
       ).timeout(const Duration(seconds: 10));
 
@@ -151,6 +153,11 @@ class _SignupScreenState extends State<SignupScreen>
         final prefs = await SharedPreferences.getInstance();
         final name = (data['user']?['full_name'] ?? '').toString().trim();
         if (name.isNotEmpty) await prefs.setString('user_name', name);
+        
+        final email = data['user']?['email'] ?? _emailController.text.trim();
+        await prefs.setString('user_email', email);
+
+        await prefs.setString('user_role', _selectedRole);
 
         if (mounted) {
           setState(() => _isLoading = false);
@@ -361,6 +368,39 @@ class _SignupScreenState extends State<SignupScreen>
                                       ),
                                     ],
                                   ),
+                                const SizedBox(height: 18),
+
+                                // Role Selection
+                                _buildLabel('Join as'),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.background,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade100),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _selectedRole,
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+                                      style: const TextStyle(fontSize: 15, color: AppColors.textMain, fontFamily: 'Outfit'),
+                                      items: const [
+                                        DropdownMenuItem(value: 'patient', child: Text('Patient / User')),
+                                        DropdownMenuItem(value: 'doctor', child: Text('Doctor / Nurse')),
+                                        DropdownMenuItem(value: 'admin', child: Text('System Administrator')),
+                                      ],
+                                      onChanged: (String? newValue) {
+                                        if (newValue != null) {
+                                          setState(() {
+                                            _selectedRole = newValue;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
                                 const SizedBox(height: 18),
 
                                 // Password

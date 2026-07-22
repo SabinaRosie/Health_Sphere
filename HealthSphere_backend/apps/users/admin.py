@@ -19,9 +19,18 @@ admin.site.register(User, CustomUserAdmin)
 
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
-    list_display = ('name', 'specialty', 'rating', 'experience')
-    search_fields = ('name', 'specialty')
-    list_filter = ('specialty',)
+    list_display = ('name', 'specialty', 'verification_status', 'rating', 'experience')
+    search_fields = ('name', 'specialty', 'user__email')
+    list_filter = ('verification_status', 'specialty')
+    actions = ['approve_doctors', 'reject_doctors']
+
+    def approve_doctors(self, request, queryset):
+        queryset.update(verification_status='verified')
+    approve_doctors.short_description = "Approve selected doctor applications"
+
+    def reject_doctors(self, request, queryset):
+        queryset.update(verification_status='rejected')
+    reject_doctors.short_description = "Reject selected doctor applications"
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):

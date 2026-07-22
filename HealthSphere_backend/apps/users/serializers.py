@@ -1,20 +1,22 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User
+from .models import User, Doctor
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     full_name = serializers.CharField(required=True)
+    role = serializers.CharField(required=False, default='patient')
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'password', 'full_name')
+        fields = ('id', 'email', 'password', 'full_name', 'role')
 
     def create(self, validated_data):
         user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            full_name=validated_data['full_name']
+            full_name=validated_data['full_name'],
+            role=validated_data.get('role', 'patient')
         )
         return user
 
@@ -35,3 +37,8 @@ class LoginSerializer(serializers.Serializer):
 
         data['user'] = user
         return data
+
+class DoctorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Doctor
+        fields = '__all__'

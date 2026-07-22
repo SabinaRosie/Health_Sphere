@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'package:health_sphere/core/utils/string_utils.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/const.dart';
-import '../utils/strings.dart';
+import '../utils/string_utils.dart';
 import '../utils/app_logger.dart';
 
 class ApiService {
@@ -14,17 +13,6 @@ class ApiService {
   static Future<SharedPreferences> get _prefs async {
     _prefsCache ??= await SharedPreferences.getInstance();
     return _prefsCache!;
-  }
-
-  /// 🔹 Keep-alive ping for Hugging Face Spaces (prevents cold starts)
-  static Future<void> keepAlive() async {
-    try {
-      await http.get(
-        Uri.parse('${AppConstants.baseUrl}/health-check'),
-      ).timeout(const Duration(seconds: 10));
-    } catch (_) {
-      // Silent warm-up ping
-    }
   }
 
   /// 🔹 Handle standard API responses
@@ -44,12 +32,6 @@ class ApiService {
         return {'success': false, 'error': errorMsg};
       }
     } catch (e) {
-      if (response.statusCode == 503 || response.statusCode == 502) {
-        return {
-          'success': false,
-          'error': 'Server is waking up. Please wait a moment and try again.',
-        };
-      }
       return {'success': false, 'error': 'Unexpected response from server.'};
     }
   }
@@ -58,7 +40,7 @@ class ApiService {
   static String _formatError(dynamic e) {
     String err = e.toString();
     if (err.contains('SocketException') || err.contains('Connection timed out')) {
-      return 'Connection timed out. The server might be waking up or your internet is unstable.';
+      return 'Cannot reach the server. Make sure your backend is running at ${AppConstants.baseUrl}';
     }
     if (err.contains('ClientException')) {
       return 'Network error. Please check your connection.';
@@ -69,7 +51,8 @@ class ApiService {
   // ── Authentication ──
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
-    final url = Uri.parse('${AppConstants.baseUrl}/api/login/');
+    // 🔹 Path depends on your Django urls.py. Common: /api/users/login/ or /api/login/
+    final url = Uri.parse('${AppConstants.baseUrl}/api/users/login/');
     try {
       final response = await http.post(
         url,
@@ -81,7 +64,13 @@ class ApiService {
       
       if (result['success']) {
         final prefs = await _prefs;
-        await prefs.setString(keyAuthToken, result['data']['access']);
+        // Save the access token
+        await prefs.setString(keyAuthToken, result['data']['access'] ?? result['data']['token'] ?? '');
+        
+        // Save user name if available
+        final name = result['data']['user']?['full_name'] ?? result['data']['username'] ?? '';
+        if (name.isNotEmpty) await prefs.setString(keyUserName, name);
+
         // Save refresh token if applicable
         if (result['data']['refresh'] != null) {
           await prefs.setString('refreshToken', result['data']['refresh']);
@@ -94,7 +83,7 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> signup(Map<String, dynamic> userData) async {
-    final url = Uri.parse('${AppConstants.baseUrl}/api/signup/');
+    final url = Uri.parse('${AppConstants.baseUrl}/api/users/signup/');
     try {
       final response = await http.post(
         url,
@@ -113,7 +102,7 @@ class ApiService {
     final token = await getValidToken();
     if (token == null) return {'success': false, 'error': errorSessionExpired};
 
-    final url = Uri.parse('${AppConstants.baseUrl}/api/profile/');
+    final url = Uri.parse('${AppConstants.baseUrl}/api/users/profile/');
     try {
       final response = await http.get(
         url,
@@ -133,9 +122,9 @@ class ApiService {
     final prefs = await _prefs;
     String? accessToken = prefs.getString(keyAuthToken);
 
-    if (accessToken == null) return null;
+    if (accessToken == null || accessToken.isEmpty) return null;
 
-    // Optional: JWT Expiry Check (Simplified)
+    // JWT Expiry Check
     try {
       final parts = accessToken.split('.');
       if (parts.length == 3) {
@@ -160,7 +149,7 @@ class ApiService {
   static Future<String?> forceRefreshToken() async {
     final prefs = await _prefs;
     final refresh = prefs.getString('refreshToken');
-    if (refresh == null) return null;
+    if (refresh == null || refresh.isEmpty) return null;
 
     final url = Uri.parse('${AppConstants.baseUrl}/api/token/refresh/');
     try {

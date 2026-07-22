@@ -110,8 +110,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (kIsWeb) {
       return 'http://localhost:8000';
     } else if (Platform.isAndroid) {
-      // 10.0.2.2 = Android emulator → PC localhost
-      // Change to your PC's LAN IP if testing on a physical device
+      // Use your PC's LAN IP for physical device testing
       return 'http://192.168.101.5:8000';
     } else {
       return 'http://127.0.0.1:8000';
@@ -148,6 +147,12 @@ class _LoginScreenState extends State<LoginScreen>
             .toString()
             .trim();
         if (name.isNotEmpty) await prefs.setString('user_name', name);
+        
+        final email = data['user']?['email'] ?? data['email'];
+        if (email != null) await prefs.setString('user_email', email);
+        
+        final role = data['user']?['role'] ?? data['role'] ?? 'patient';
+        await prefs.setString('user_role', role);
 
         if (mounted) {
           setState(() => _isLoading = false);

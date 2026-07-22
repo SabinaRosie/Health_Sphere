@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:health_sphere/core/theme/app_colors.dart';
 
 class DoctorsScreen extends StatefulWidget {
@@ -14,49 +18,60 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _showDropdown = false;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _allDoctors = [];
 
   final List<String> _categories = [
     'All',
-    'Child Healthcare',
-    'Female Healthcare',
-    'Sexologist',
-    'Mental Healthcare',
-    'Mental Health Therapy',
-    'ENT Care',
-    'O.P.D',
-    'Skin Healthcare',
-    'Pulmonary Healthcare',
-    'Cardiology',
+    'Cardiologist',
     'Neurologist',
-    'Geriatrician',
-    'Oncology',
+    'Pediatrician',
+    'Dermatologist',
     'General Physician',
-    'Urology',
-    'Endocrinology',
-    'Orthopedic',
-    'Pediatrics',
-    'Dermatology',
   ];
 
-  final List<Map<String, dynamic>> _allDoctors = [
-    {'name': 'Dr. Sarah Mills', 'specialty': 'Cardiologist', 'category': 'Cardiology', 'rating': 4.9, 'reviews': 128, 'image': 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=200&auto=format&fit=crop', 'available': true},
-    {'name': 'Dr. James Chen', 'specialty': 'Neurologist', 'category': 'Neurologist', 'rating': 4.8, 'reviews': 96, 'image': 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&auto=format&fit=crop', 'available': true},
-    {'name': 'Dr. Priya Rao', 'specialty': 'Pediatrician', 'category': 'Pediatrics', 'rating': 4.9, 'reviews': 214, 'image': 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=200&auto=format&fit=crop', 'available': false},
-    {'name': 'Dr. Alan Ford', 'specialty': 'Orthopedic Surgeon', 'category': 'Orthopedic', 'rating': 4.7, 'reviews': 87, 'image': 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=200&auto=format&fit=crop', 'available': true},
-    {'name': 'Dr. Maria Lopez', 'specialty': 'Dermatologist', 'category': 'Dermatology', 'rating': 4.8, 'reviews': 153, 'image': 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=200&auto=format&fit=crop', 'available': true},
-    {'name': 'Dr. Rajan Shrestha', 'specialty': 'ENT Specialist', 'category': 'ENT Care', 'rating': 4.6, 'reviews': 62, 'image': 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=200&auto=format&fit=crop', 'available': true},
-    {'name': 'Dr. Anita Karki', 'specialty': 'Gynecologist', 'category': 'Female Healthcare', 'rating': 4.9, 'reviews': 178, 'image': 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=200&auto=format&fit=crop', 'available': false},
-    {'name': 'Dr. Kevin Patel', 'specialty': 'General Physician', 'category': 'General Physician', 'rating': 4.5, 'reviews': 201, 'image': 'https://images.unsplash.com/photo-1612531385446-f7e6d131e1d0?w=200&auto=format&fit=crop', 'available': true},
-    {'name': 'Dr. Sita Thapa', 'specialty': 'Psychiatrist', 'category': 'Mental Healthcare', 'rating': 4.7, 'reviews': 110, 'image': 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=200&auto=format&fit=crop', 'available': true},
-    {'name': 'Dr. Bikash Adhikari', 'specialty': 'Pulmonologist', 'category': 'Pulmonary Healthcare', 'rating': 4.6, 'reviews': 74, 'image': 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=200&auto=format&fit=crop', 'available': false},
-    {'name': 'Dr. Meena Gurung', 'specialty': 'Pediatrician', 'category': 'Child Healthcare', 'rating': 4.9, 'reviews': 192, 'image': 'https://images.unsplash.com/photo-1527613426441-4da17471b66d?w=200&auto=format&fit=crop', 'available': true},
-    {'name': 'Dr. Rohan Joshi', 'specialty': 'Oncologist', 'category': 'Oncology', 'rating': 4.8, 'reviews': 89, 'image': 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=200&auto=format&fit=crop', 'available': true},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchDoctors();
+  }
+
+  String get _baseUrl {
+    if (kIsWeb) return 'http://localhost:8000';
+    if (Platform.isAndroid) return 'http://192.168.101.5:8000';
+    return 'http://127.0.0.1:8000';
+  }
+
+  Future<void> _fetchDoctors() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/users/doctors/'),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _allDoctors = data.map((e) => e as Map<String, dynamic>).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        // Fallback to mock data if server fails
+        _allDoctors = [
+          {'name': 'Dr. Sarah Mitchell', 'specialty': 'Cardiologist', 'rating': 4.9, 'reviews': 120, 'available': true},
+          {'name': 'Dr. James Wilson', 'specialty': 'Neurologist', 'rating': 4.8, 'reviews': 85, 'available': true},
+        ];
+      }
+    }
+  }
 
   List<Map<String, dynamic>> get _filteredDoctors {
     final category = _categories[_selectedCategory];
     return _allDoctors.where((doc) {
-      final matchCat = category == 'All' || doc['category'] == category;
+      final matchCat = category == 'All' || doc['specialty'] == category;
       final matchSearch = _searchQuery.isEmpty ||
           (doc['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase()) ||
           (doc['specialty'] as String).toLowerCase().contains(_searchQuery.toLowerCase());
@@ -65,10 +80,7 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
   }
 
   Future<void> _handleRefresh() async {
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      setState(() {});
-    }
+    await _fetchDoctors();
   }
 
   @override
@@ -209,6 +221,9 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
 
   // ── Doctor List ─────────────────────────────────────────────────────────────
   Widget _buildDoctorList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
     final docs = _filteredDoctors;
     if (docs.isEmpty) {
       return ListView(
@@ -350,15 +365,15 @@ class _DoctorCard extends StatelessWidget {
                 Stack(
                   children: [
                     ClipOval(
-                      child: Image.network(
-                        doc['image'] as String,
-                        width: 60, height: 60, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 60, height: 60,
-                          decoration: const BoxDecoration(color: AppColors.primarySoft, shape: BoxShape.circle),
-                          child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 30),
-                        ),
-                      ),
+                      child: (doc['avatar_url'] != null && (doc['avatar_url'] as String).isNotEmpty)
+                          ? Image.network(
+                              doc['avatar_url'] as String,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildAvatarFallback(),
+                            )
+                          : _buildAvatarFallback(),
                     ),
                     Positioned(
                       bottom: 2,
@@ -423,6 +438,15 @@ class _DoctorCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAvatarFallback() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: const BoxDecoration(color: AppColors.primarySoft, shape: BoxShape.circle),
+      child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 30),
     );
   }
 }

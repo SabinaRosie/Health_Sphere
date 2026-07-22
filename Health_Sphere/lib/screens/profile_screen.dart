@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:health_sphere/core/theme/app_colors.dart';
 import 'package:health_sphere/screens/authentication/login_screen.dart';
+import 'package:health_sphere/screens/doctor/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -13,24 +14,29 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   String _userName = '';
+  String _userRole = 'patient';
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    _loadUserInfo();
   }
 
-  Future<void> _loadUserName() async {
+  Future<void> _loadUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
     final name = prefs.getString('user_name') ?? '';
+    final role = prefs.getString('user_role') ?? 'patient';
     if (mounted) {
-      setState(() => _userName = name);
+      setState(() {
+        _userName = name;
+        _userRole = role;
+      });
     }
   }
 
   Future<void> _handleRefresh() async {
     await Future.delayed(const Duration(seconds: 1));
-    await _loadUserName();
+    await _loadUserInfo();
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -72,6 +78,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (confirmed == true) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('remember_me', false);
+      await prefs.remove('user_name');
+      await prefs.remove('user_role');
       if (context.mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -196,6 +204,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 10),
                     _MenuCard(
                       items: [
+                        if (_userRole == 'doctor')
+                          _MenuItem(
+                            icon: Icons.edit_note_rounded,
+                            label: 'Edit Professional Profile',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const EditDoctorProfileScreen()),
+                              );
+                            },
+                          ),
                         _MenuItem(
                           icon: Icons.person_outline_rounded,
                           label: 'Personal Information',
